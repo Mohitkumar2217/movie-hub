@@ -39,7 +39,7 @@ const App: React.FC = () => {
       try {
         // Fetches from your Node.js backend based on tab and search query
         const response = await fetch(
-          `http://localhost:5000/api/movies?category=${activeTab}&search=${searchQuery}`
+          `https://movie-hub-s7si.onrender.com/api/movies?category=${activeTab}&search=${searchQuery}`
         );
         const data = await response.json();
         setMovies(data);
