@@ -1,46 +1,93 @@
-# Getting Started with Create React App
+# 🎬 MovieHub - Movie Discovery App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A sleek, responsive movie discovery platform that allows users to explore trending, top-rated, and upcoming movies. Built with a focus on performance, clean UI, and smooth asynchronous data handling.
 
-## Available Scripts
+## 🌟 Features
 
-In the project directory, you can run:
+* **Real-time Data:** Fetches live movie data using the TMDB API.
+* **Advanced Search:** Integrated search functionality with **Debouncing** to optimize API usage.
+* **Dynamic Routing/State:** Switch between Trending, Top Rated, and Upcoming categories instantly.
+* **Detailed Insights:** Clicking a movie reveals a dedicated view with:
+* High-res backdrops and posters.
+* Movie tagline, overview, and genres.
+* Cast list with character names and photos.
 
-### `npm start`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+* **Responsive Design:** Optimized for all screen sizes using Tailwind CSS.
+* **Performance:** Smooth transitions and conditional rendering for a "single-page" experience.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## 🛠️ Tech Stack
 
-### `npm test`
+* **Frontend:** React.js (Functional Components, Hooks)
+* **Language:** TypeScript
+* **Styling:** Tailwind CSS (Modern Dark UI)
+* **Data Fetching:** Fetch API / Asynchronous Promises
+* **Icons:** Heroicons
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 🚀 Getting Started
 
-### `npm run build`
+### Prerequisites
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+* Node.js installed on your machine.
+* A TMDB API Key (Get it for free [here](https://www.google.com/search?q=https://www.themoviedb.org/settings/api)).
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Installation
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. **Clone the repository:**
+```bash
+git clone https://github.com/yourusername/movie-hub.git
+cd movie-hub
 
-### `npm run eject`
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+2. **Install dependencies:**
+```bash
+npm install
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
 
-## Learn More
+3. **Set up Environment Variables:**
+Create a `.env` file in the root directory and add your TMDB key:
+```env
+# If using Create React App
+REACT_APP_TMDB_KEY=your_api_key_here
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+# If using Vite
+VITE_TMDB_KEY=your_api_key_here
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```
+
+
+4. **Run the application:**
+```bash
+npm start # or npm run dev
+
+```
+
+
+
+## 🧠 Technical Challenges & Learnings
+
+### 1. Debouncing Search
+
+To prevent the application from making an API call for every single keystroke, I implemented a custom debounce logic. This waits for the user to finish typing for 400ms before triggering the fetch, significantly reducing unnecessary network load.
+
+### 2. Complex API Integration
+
+TMDB separates "basic info" from "cast info." I used `Promise.all` to fetch both data streams simultaneously when a user selects a movie, ensuring the details page loads all information at once for a better user experience.
+
+### 3. State Management
+
+Managing the transition between the home grid and the detail view while maintaining the scroll position and category state was a key focus during development.
+
+## 📜 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+**Developed by Mohit Kumawat**
+
+---
