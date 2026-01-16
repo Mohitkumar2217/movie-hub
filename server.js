@@ -1,10 +1,42 @@
 const express = require("express");
 const cors = require("cors");
+const mongoose = require('mongoose');
+const dotenv = require("dotenv");
+
+dotenv.config();
+
 const app = express();
+app.use(express.json());
+app.use(cors());
 
-app.use(cors({ origin: "https://movie-hub-ens4.vercel.app/" }));
+mongoose.connect(process.env.MONGO_URI);
 
-// Full dataset for the backend
+// --- 1. SCHEMAS & MODELS ---
+const castSchema = new mongoose.Schema({
+    id: { type: Number },
+    name: { type: String },
+    role: { type: String },
+    imageUrl: { type: String },
+});
+
+const movieSchema = new mongoose.Schema({
+    id: { type: Number },
+    title: { type: String },
+    year: { type: Number },
+    rating: { type: Number },
+    category: { type: String },
+    imageUrl: { type: String },
+    tagline: { type: String },
+    releaseDate: { type: String },
+    duration: { type: String },
+    genres: [String],
+    overview: { type: String },
+    cast: [castSchema],
+});
+
+const Movie = mongoose.model("Movie", movieSchema);
+
+// --- 2. THE SEED DATA ---
 const moviesDB = Array.from({ length: 40 }).map((_, i) => ({
     id: i + 1,
     title: i % 3 === 0 ? `Action Thriller ${i}` : i % 2 === 0 ? `Love Story ${i}` : `Space Odyssey ${i}`,
@@ -23,22 +55,56 @@ const moviesDB = Array.from({ length: 40 }).map((_, i) => ({
     ]
 }));
 
-// API Endpoint with Search and Category filters
-app.get("/api/movies", (req, res) => {
-    const { category, search } = req.query;
-    let results = moviesDB;
+// const seedDatabase = async () => {
+//     try {
+//         await mongoose.connect(process.env.MONGO_URI);
+//         console.log("Connected to MongoDB for seeding...");
 
-    if (category) {
-        results = results.filter(m => m.category === category);
+//         // Clear existing data
+//         await Movie.deleteMany({});
+//         console.log("Old movies removed.");
+
+//         // Insert new data
+//         await Movie.insertMany(moviesDB);
+//         console.log(`${moviesDB.length} movies seeded successfully!`); 
+//     } catch (error) {
+//         console.error("Error seeding database:", error);
+//         process.exit(1);
+//     }
+// };
+
+// seedDatabase();
+
+// GET MOVIES (With Home/Category/Search logic)
+app.get("/api/movies", async (req, res) => {
+    try {
+        const { category, search } = req.query;
+        let query = {};
+ 
+        if (category && category !== "Home") {
+            query.category = category;
+        }
+
+        if (search) {
+            query.title = { $regex: search, $options: "i" };
+        }
+
+        const results = await Movie.find(query);
+        res.json(results);
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
+});
 
-    if (search) {
-        results = results.filter(m =>
-            m.title.toLowerCase().includes(search.toLowerCase())
-        );
+// GET SINGLE MOVIE
+app.get("/api/movies/:id", async (req, res) => {
+    try {
+        const movie = await Movie.findOne({ id: req.params.id });
+        if (!movie) return res.status(404).json({ success: false, message: "Movie not found" });
+        res.json(movie);
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
-
-    res.json(results);
 });
 
 app.listen(5000, () => console.log("Backend running on port 5000"));

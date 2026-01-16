@@ -1,4 +1,4 @@
-import React, { useState, useEffect} from "react";
+import React, { useState, useEffect } from "react";
 
 // --- Types ---
 export interface Cast {
@@ -23,26 +23,51 @@ export interface Movie {
   cast?: Cast[];
 }
 
+// --- API Config ---
+const API_KEY = "d0633a0b2cef096497783aa564d15934"; // 👈 Get this free from themoviedb.org
+const BASE_URL = "https://api.themoviedb.org/3";
+const IMAGE_PATH = "https://image.tmdb.org/t/p/w500";
+
 const App: React.FC = () => {
-  // --- State ---
-  const [activeTab, setActiveTab] = useState("Trending");
+  const [activeTab, setActiveTab] = useState("Home");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [visibleCount, setVisibleCount] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // --- Backend Data Fetching ---
+  // --- Fetch Movie List (Home/Tabs/Search) ---
   useEffect(() => {
     const fetchMovies = async () => {
       setLoading(true);
       try {
-        // Fetches from your Node.js backend based on tab and search query
-        const response = await fetch(
-          `https://movie-hub-s7si.onrender.com/api/movies?category=${activeTab}&search=${searchQuery}`
-        );
+        let endpoint = "";
+        
+        if (searchQuery) {
+          endpoint = `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(searchQuery)}`;
+        } else {
+          const categoryMap: Record<string, string> = {
+            "Home": "trending/movie/day",
+            "Trending": "trending/movie/week",
+            "Top Rated": "movie/top_rated",
+            "Upcoming": "movie/upcoming"
+          };
+          endpoint = `${BASE_URL}/${categoryMap[activeTab]}?api_key=${API_KEY}`;
+        }
+
+        const response = await fetch(endpoint);
         const data = await response.json();
-        setMovies(data);
+        
+        const formatted = data.results.map((m: any) => ({
+          id: m.id,
+          title: m.title || m.name,
+          year: m.release_date ? new Date(m.release_date).getFullYear() : "N/A",
+          rating: parseFloat(m.vote_average.toFixed(1)),
+          imageUrl: m.poster_path ? `${IMAGE_PATH}${m.poster_path}` : "https://via.placeholder.com/500x750?text=No+Image",
+          category: activeTab
+        }));
+
+        setMovies(formatted);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -50,13 +75,45 @@ const App: React.FC = () => {
       }
     };
 
-    // Debounce to prevent server spam while typing
     const delayDebounce = setTimeout(() => {
       fetchMovies();
     }, 400);
 
     return () => clearTimeout(delayDebounce);
   }, [activeTab, searchQuery]);
+
+  // --- Fetch Detailed Data when a Movie is Clicked ---
+  const handleSelectMovie = async (movie: Movie) => {
+    setLoading(true);
+    try {
+      const [detailRes, creditsRes] = await Promise.all([
+        fetch(`${BASE_URL}/movie/${movie.id}?api_key=${API_KEY}`),
+        fetch(`${BASE_URL}/movie/${movie.id}/credits?api_key=${API_KEY}`)
+      ]);
+
+      const d = await detailRes.json();
+      const c = await creditsRes.json();
+
+      setSelectedMovie({
+        ...movie,
+        tagline: d.tagline,
+        releaseDate: d.release_date,
+        duration: `${d.runtime} min`,
+        genres: d.genres.map((g: any) => g.name),
+        overview: d.overview,
+        cast: c.cast.slice(0, 8).map((person: any) => ({
+          id: person.id,
+          name: person.name,
+          role: person.character,
+          imageUrl: person.profile_path ? `${IMAGE_PATH}${person.profile_path}` : "https://via.placeholder.com/200x300?text=No+Image"
+        }))
+      });
+    } catch (error) {
+      console.error("Error fetching details:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLoadMore = () => setVisibleCount((prev) => prev + 5);
 
@@ -66,7 +123,7 @@ const App: React.FC = () => {
       <nav className="flex items-center justify-between px-8 py-4 bg-[#0b1120]/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-800">
         <div 
           className="flex items-center gap-2 cursor-pointer" 
-          onClick={() => { setSelectedMovie(null); setSearchQuery(""); }}
+          onClick={() => { setSelectedMovie(null); setActiveTab("Home"); setSearchQuery(""); }}
         >
           <div className="bg-blue-600 p-1.5 rounded shadow-lg shadow-blue-500/20">
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,8 +136,8 @@ const App: React.FC = () => {
           {["Home", "Trending", "Top Rated", "Upcoming"].map((item) => (
             <button 
               key={item} 
-              onClick={() => { setSelectedMovie(null); if(item !== "Home") setActiveTab(item); }} 
-              className="hover:text-white transition-colors cursor-pointer"
+              onClick={() => { setSelectedMovie(null); setActiveTab(item); }} 
+              className={`transition-colors cursor-pointer ${activeTab === item ? "text-white font-bold" : "hover:text-white"}`}
             >
               {item}
             </button>
@@ -132,12 +189,16 @@ const App: React.FC = () => {
               <div className="flex justify-center py-20">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               </div>
+            ) : movies.length === 0 ? (
+                <div className="text-center py-20 text-gray-500">
+                    <p className="text-xl">No movies found.</p>
+                </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 {movies.slice(0, visibleCount).map((movie) => (
                   <div 
                     key={movie.id} 
-                    onClick={() => setSelectedMovie(movie)} 
+                    onClick={() => handleSelectMovie(movie)} 
                     className="group cursor-pointer animate-in zoom-in-95 duration-300"
                   >
                     <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gray-800 shadow-xl">
@@ -201,13 +262,12 @@ const App: React.FC = () => {
               />
               <div className="flex-1 pb-4">
                 <h1 className="text-4xl md:text-6xl font-bold mb-2">{selectedMovie.title}</h1>
-                <p className="text-gray-400 italic text-xl mb-4">"{selectedMovie.tagline}"</p>
+                <p className="text-gray-400 italic text-xl mb-4">"{selectedMovie.tagline || "No tagline available"}"</p>
                 
                 <div className="flex flex-wrap gap-6 text-sm md:text-base mb-6">
                   <div className="flex items-center gap-2">
                     <span className="text-yellow-400 text-lg">★</span> 
                     <b className="text-xl">{selectedMovie.rating}</b> 
-                    <span className="text-gray-500">(9,113 votes)</span>
                   </div>
                   <div className="flex items-center gap-2">📅 <span>{selectedMovie.releaseDate}</span></div>
                   <div className="flex items-center gap-2">🕒 <span>{selectedMovie.duration}</span></div>
@@ -233,7 +293,7 @@ const App: React.FC = () => {
                 <h2 className="text-3xl font-bold mb-8">Cast</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                   {selectedMovie.cast?.map((person) => (
-                    <div key={person.name} className="bg-[#1e293b] rounded-xl overflow-hidden border border-gray-800 group hover:border-blue-500/50 transition-all">
+                    <div key={person.id} className="bg-[#1e293b] rounded-xl overflow-hidden border border-gray-800 group hover:border-blue-500/50 transition-all">
                       <img 
                         src={person.imageUrl} 
                         className="w-full aspect-[3/4] object-cover group-hover:scale-105 transition-transform" 
